@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visual Task Manager</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000000;
+            color: #ffffff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-size: 18px;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header Section */
+        .header {
+            height: 80px;
+            background-color: #000000;
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            border-bottom: 2px solid #333333;
+            flex-shrink: 0;
+        }
+
+        .task-input {
+            flex: 1;
+            background-color: #222222;
+            color: #ffffff;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 12px 16px;
+            font-size: 18px;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .task-input:focus {
+            border-color: #555555;
+        }
+
+        .task-input::placeholder {
+            color: #888888;
+        }
+
+        .add-button {
+            background-color: #333333;
+            color: #ffffff;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 12px 24px;
+            font-size: 18px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 120px;
+        }
+
+        .add-button:hover {
+            background-color: #555555;
+            border-color: #555555;
+        }
+
+        .add-button:active {
+            transform: translateY(1px);
+        }
+
+        /* Main Content Area */
+        .main-content {
+            flex: 1;
+            display: grid;
+            gap: 2px;
+            background-color: #333333;
+            padding: 2px;
+            overflow: hidden;
+        }
+
+        .task-section {
+            background-color: #000000;
+            color: #ffffff;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-height: 200px;
+            text-align: center;
+            padding: 20px;
+            word-wrap: break-word;
+            user-select: none;
+        }
+
+        .task-section:hover {
+            transform: scale(1.02);
+        }
+
+        /* Task States */
+        .task-section.neutral {
+            background-color: #000000;
+            color: #ffffff;
+            border-color: #333333;
+        }
+
+        .task-section.working {
+            background-color: #1a1a1a;
+            color: #ffaa00;
+            border-color: #ffaa00;
+            box-shadow: 0 0 20px rgba(255, 170, 0, 0.3);
+        }
+
+        .task-section.finished {
+            background-color: #1a1a1a;
+            color: #00cc00;
+            border-color: #00cc00;
+            text-decoration: line-through;
+            box-shadow: 0 0 20px rgba(0, 204, 0, 0.3);
+        }
+
+        .empty-section {
+            background-color: #0a0a0a;
+            border: 2px dashed #333333;
+            color: #666666;
+            cursor: default;
+            font-size: 18px;
+            font-style: italic;
+        }
+
+        .empty-section:hover {
+            transform: none;
+        }
+
+        /* Footer Section */
+        .footer {
+            height: 120px;
+            background-color: #000000;
+            padding: 20px;
+            border-top: 2px solid #333333;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .ideas-label {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: 500;
+            margin-bottom: 8px;
+        }
+
+        .ideas-input {
+            flex: 1;
+            background-color: #222222;
+            color: #ffffff;
+            border: 2px solid #333333;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: none;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .ideas-input:focus {
+            border-color: #555555;
+        }
+
+        .ideas-input::placeholder {
+            color: #888888;
+        }
+
+        /* Empty state */
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666666;
+            font-size: 24px;
+            text-align: center;
+        }
+
+        /* Responsive adjustments for very large screens */
+        @media (min-width: 1920px) {
+            body {
+                font-size: 20px;
+            }
+            
+            .task-section {
+                font-size: 28px;
+                min-height: 250px;
+            }
+            
+            .task-input, .add-button {
+                font-size: 20px;
+                padding: 14px 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <input type="text" class="task-input" placeholder="Enter a new task..." id="taskInput">
+        <button class="add-button" id="addButton">Add Task</button>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="empty-state">
+            Add your first task to get started
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="ideas-label">Quick Ideas &amp; Notes</div>
+        <textarea class="ideas-input" id="ideasInput" placeholder="Jot down your spontaneous ideas here..."></textarea>
+    </div>
+
+    <script>
+        class VisualTaskManager {
+            constructor() {
+                this.tasks = [];
+                this.ideas = '';
+                this.storageKey = 'visual_task_manager_data';
+                
+                this.taskInput = document.getElementById('taskInput');
+                this.addButton = document.getElementById('addButton');
+                this.mainContent = document.getElementById('mainContent');
+                this.ideasInput = document.getElementById('ideasInput');
+                
+                this.taskStates = ['neutral', 'working', 'finished'];
+                
+                this.init();
+            }
+            
+            init() {
+                this.loadData();
+                this.setupEventListeners();
+                this.render();
+            }
+            
+            setupEventListeners() {
+                // Add task button
+                this.addButton.addEventListener('click', () => this.addTask());
+                
+                // Enter key on task input
+                this.taskInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        this.addTask();
+                    }
+                });
+                
+                // Ideas input auto-save
+                this.ideasInput.addEventListener('input', () => {
+                    this.ideas = this.ideasInput.value;
+                    this.saveData();
+                });
+            }
+            
+            addTask() {
+                const taskText = this.taskInput.value.trim();
+                if (taskText) {
+                    const newTask = {
+                        id: Date.now().toString(),
+                        text: taskText,
+                        state: 'neutral'
+                    };
+                    
+                    this.tasks.push(newTask);
+                    this.taskInput.value = '';
+                    this.saveData();
+                    this.render();
+                }
+            }
+            
+            removeTask(taskId) {
+                this.tasks = this.tasks.filter(task => task.id !== taskId);
+                this.saveData();
+                this.render();
+            }
+            
+            toggleTaskState(taskId) {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (task) {
+                    const currentIndex = this.taskStates.indexOf(task.state);
+                    const nextIndex = (currentIndex + 1) % this.taskStates.length;
+                    task.state = this.taskStates[nextIndex];
+                    this.saveData();
+                    this.render();
+                }
+            }
+            
+            calculateGridLayout() {
+                const taskCount = this.tasks.length;
+                if (taskCount === 0) return { columns: 1, rows: 1 };
+                
+                // Total sections = tasks + 1 empty section
+                const totalSections = taskCount + 1;
+                
+                // Calculate optimal grid dimensions
+                const aspectRatio = window.innerWidth / window.innerHeight;
+                let columns = Math.ceil(Math.sqrt(totalSections * aspectRatio));
+                let rows = Math.ceil(totalSections / columns);
+                
+                // Adjust for better fit
+                while (columns * rows < totalSections) {
+                    if (columns <= rows) {
+                        columns++;
+                    } else {
+                        rows++;
+                    }
+                }
+                
+                return { columns, rows };
+            }
+            
+            render() {
+                if (this.tasks.length === 0) {
+                    this.mainContent.innerHTML = '<div class="empty-state">Add your first task to get started</div>';
+                    this.mainContent.style.gridTemplateColumns = '1fr';
+                    this.mainContent.style.gridTemplateRows = '1fr';
+                    return;
+                }
+                
+                const { columns, rows } = this.calculateGridLayout();
+                
+                // Set grid layout
+                this.mainContent.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+                this.mainContent.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+                
+                // Clear content
+                this.mainContent.innerHTML = '';
+                
+                // Add task sections
+                this.tasks.forEach(task => {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = `task-section ${task.state}`;
+                    taskElement.textContent = task.text;
+                    
+                    // Add click handler for state cycling
+                    taskElement.addEventListener('click', () => {
+                        this.toggleTaskState(task.id);
+                    });
+                    
+                    // Add double-click handler for removal
+                    taskElement.addEventListener('dblclick', (e) => {
+                        e.preventDefault();
+                        if (confirm(`Remove task: "${task.text}"?`)) {
+                            this.removeTask(task.id);
+                        }
+                    });
+                    
+                    this.mainContent.appendChild(taskElement);
+                });
+                
+                // Add empty section
+                const emptyElement = document.createElement('div');
+                emptyElement.className = 'empty-section';
+                emptyElement.textContent = 'Available Space';
+                this.mainContent.appendChild(emptyElement);
+                
+                // Fill remaining grid cells if needed
+                const totalSections = this.tasks.length + 1;
+                const remainingCells = (columns * rows) - totalSections;
+                
+                for (let i = 0; i < remainingCells; i++) {
+                    const fillerElement = document.createElement('div');
+                    fillerElement.className = 'empty-section';
+                    fillerElement.style.visibility = 'hidden';
+                    this.mainContent.appendChild(fillerElement);
+                }
+            }
+            
+            saveData() {
+                const data = {
+                    tasks: this.tasks,
+                    ideas: this.ideas,
+                    timestamp: Date.now()
+                };
+                
+                try {
+                    // Using in-memory storage since localStorage is not available in sandboxed environment
+                    window.taskManagerData = data;
+                } catch (error) {
+                    console.warn('Storage not available, using session memory only');
+                }
+            }
+            
+            loadData() {
+                try {
+                    // Try to load from session memory
+                    const data = window.taskManagerData;
+                    if (data && data.tasks) {
+                        this.tasks = data.tasks || [];
+                        this.ideas = data.ideas || '';
+                        this.ideasInput.value = this.ideas;
+                    }
+                } catch (error) {
+                    console.warn('Could not load saved data, starting fresh');
+                    this.tasks = [];
+                    this.ideas = '';
+                }
+            }
+        }
+        
+        // Initialize the application when DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.taskManager = new VisualTaskManager();
+        });
+        
+        // Handle window resize for responsive grid
+        window.addEventListener('resize', () => {
+            if (window.taskManager) {
+                setTimeout(() => window.taskManager.render(), 100);
+            }
+        });
+    </script>
+</body>
+</html>
